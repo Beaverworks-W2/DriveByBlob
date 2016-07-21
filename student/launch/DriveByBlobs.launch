@@ -1,0 +1,6 @@
+<launch>
+	<include file="$(find racecar)/launch/teleop.launch" />
+
+	<node name="zed_pub" pkg="student" type="contourRed.py" />
+	<node name="object_detector_node" pkg="student" type="wall_follower.py" />
+</launch>
