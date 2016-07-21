@@ -67,6 +67,8 @@ class ObjectDetectorNode:
                 self.drive_pub.publish(self.STOP)
 	        rospy.loginfo("Car Stopped")
             else:
+
+
 		#img size
 		img_size = self.img_height * self.img_width
 		#self.blob_size
@@ -80,46 +82,47 @@ class ObjectDetectorNode:
 		    drive_command_color = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=color_steering_angle, speed=2.0))
 		    self.drive_pub.publish(drive_command_color)
 		    #COLOR DRIVING END
+		
 		else size_ratio >= .3:
 
-			#WALL DETECTION START
+		#WALL DETECTION START
 
-		    	if self.color == "green":
-		            rospy.loginfo("Tracking left wall")
-		            self.is_right = False
-		            self.ready_to_wall_detect = True
-			elif self.color == "red":
-		            rospy.loginfo("Tracking right wall")
-		            self.is_right = True
-		            self.ready_to_wall_detect = True
-			else:
-	    		    print "Not Detecting Color"
+	    	if self.color == "green":
+                    rospy.loginfo("Tracking left wall")
+                    self.is_right = False
+                    self.ready_to_wall_detect = True
+	        elif self.color == "red":
+                    rospy.loginfo("Tracking right wall")
+                    self.is_right = True
+                    self.ready_to_wall_detect = True
+	        else:
+    		    print "Not Detecting Color"
 		
-		        if self.ready_to_wall_detect:
-		 	    self.refresh_count += 1
+                if self.ready_to_wall_detect:
+         	    self.refresh_count += 1
 
-		        if self.is_right:
-		            pts = msg.ranges[170:200]
-		            pt_one = msg.ranges[180] 
-		            pt_two = msg.ranges[300]
-		        else:
-		            pts = msg.ranges[880:910]
-		            pt_one = msg.ranges[900]
-		            pt_two = msg.ranges[780]
-		    	
-		        error = self.desired_distance - min(pts)
-		        d_hat = ((pt_one*pt_two)/(2*math.sqrt((math.pow(pt_one, 2) + math.pow(pt_two, 2) - math.sqrt(3)*pt_one*pt_two))))
-		        error_two = self.desired_distance - d_hat
-		        error_new = (error + error_two)/2
-		        if self.refresh_count == 1:
-		            self.before_e = error
+                if self.is_right:
+                    pts = msg.ranges[170:200]
+                    pt_one = msg.ranges[180] 
+                    pt_two = msg.ranges[300]
+                else:
+                    pts = msg.ranges[880:910]
+                    pt_one = msg.ranges[900]
+                    pt_two = msg.ranges[780]
+            	
+                error = self.desired_distance - min(pts)
+                d_hat = ((pt_one*pt_two)/(2*math.sqrt((math.pow(pt_one, 2) + math.pow(pt_two, 2) - math.sqrt(3)*pt_one*pt_two))))
+                error_two = self.desired_distance - d_hat
+                error_new = (error + error_two)/2
+                if self.refresh_count == 1:
+                    self.before_e = error
 
-		        # new_steering_angle = self.bang_bang_controller(error)
-		        # new_steering_angle = self.bang_bang_with_threshold(error)
-		        new_steering_angle = self.pid_controller(error_new)
-		        drive_command = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=new_steering_angle, speed=2.0))
-		        self.drive_pub.publish(drive_command)
-		        #WALL DETECTION END
+                # new_steering_angle = self.bang_bang_controller(error)
+                # new_steering_angle = self.bang_bang_with_threshold(error)
+                new_steering_angle = self.pid_controller(error_new)
+                drive_command = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=new_steering_angle, speed=2.0))
+                self.drive_pub.publish(drive_command)
+                #WALL DETECTION END
 
     def zed_cam_callback(self, data):
         img_data = self.bridge.imgmsg_to_cv2(data)
