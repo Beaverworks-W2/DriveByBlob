@@ -15,8 +15,8 @@ class ZedCamPub:
 		self.bridge = CvBridge()
 
 		self.zed_pub = rsp.Publisher("image_echo", Image, queue_size=10)
-		self.loc_size_pub = rsp.Publisher("blob_info", blob_detect, queue_size=10)
-		
+		self.loc_size_pub = rsp.Publisher("/blob_info", blob_detect, queue_size=10)
+		#self.test_pub = rsp.Publisher("/test_pub", String, queue_size=10)
 		self.zed_img = rsp.Subscriber("/camera/rgb/image_rect_color", Image, self.detect_img)
 		
 		self.header = std_msgs.msg.Header()
@@ -63,18 +63,18 @@ class ZedCamPub:
 
 		contours_red, hierarchy_red = cv2.findContours(maskRed1, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 		
-
+		#blobD.color = "none"
 		try:		
 			if len(contours_green) == 0:
 				contRedArea = [ (cv2.contourArea(c), (c) ) for c in contours_red]
 				contRedArea = sorted(contRedArea, reverse=True, key=lambda x: x[0])
 				officCont = contRedArea[0][1]
-				blobD.color = "red"
+				blobD.color = String("red")
 			elif len(contours_red) == 0:
 				contGreenArea = [ (cv2.contourArea(c), (c) ) for c in contours_green]
 				contGreenArea = sorted(contGreenArea, reverse=True, key=lambda x: x[0])
 				officCont = contGreenArea[0][1]
-				blobD.color = "green"
+				blobD.color = String("green")
 			else:
 				contGreenArea = [ (cv2.contourArea(c), (c) ) for c in contours_green]
 				contGreenArea = sorted(contGreenArea, reverse=True, key=lambda x: x[0])
@@ -82,10 +82,11 @@ class ZedCamPub:
 				contRedArea = sorted(contRedArea, reverse=True, key=lambda x: x[0])
 				if( max(contGreenArea[0][0], contRedArea[0][0]) == contGreenArea[0][0]):
 					officCont = contGreenArea[0][1]
-					blobD.color = "green"
+					blobD.color = String("green")
 				else:
 					officCont = contRedArea[0][1]
-					blobD.color = "red"
+					blobD.color = String("red")
+			print blobD.color
 
 			cv2.drawContours(img, officCont, -1, (120, 0, 0), 4)
 			MGr = cv2.moments(officCont)
@@ -106,10 +107,15 @@ class ZedCamPub:
 				location = Point(float(cx)/float(width), float(cy)/float(height), 0)
 					
 				blobD.header = self.header
+				print "size:",str(float(blobSize))
 				blobD.size = Float64(float(blobSize))
+				#blobD.size = float(blobSize) #temp
 				blobD.location = location	
-
+				print blobD
+				
+				# blob_detect(self.header, blobD.color, blobD.size, blobD.location)
 				self.loc_size_pub.publish(blobD)
+				#self.test_pub.publish("ello")
 			
 		except Exception, e:
 			print str(e)

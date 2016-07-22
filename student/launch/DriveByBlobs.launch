@@ -1,6 +1,7 @@
 <launch>
 	<include file="$(find racecar)/launch/teleop.launch" />
+	<include file="$(find zed_wrapper)/launch/zed.launch" />	
 
-	<node name="zed_pub" pkg="student" type="contourRed.py" />
-	<node name="object_detector_node" pkg="student" type="wall_follower.py" />
+	<node name="zed_pub" pkg="student" type="finalBlobDetect.py" />
+	<node name="object_detector_node" pkg="student" type="friday_color_race.py" args = "1 0 0 .2  .002 .05" />
 </launch>

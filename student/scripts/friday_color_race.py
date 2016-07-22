@@ -1,5 +1,4 @@
 #!/usr/bin/python
-
 import rospy
 from ackermann_msgs.msg import *
 from sensor_msgs.msg import *
@@ -7,11 +6,14 @@ from nav_msgs.msg import *
 import sys, math
 from student.msg import blob_detect
 from std_msgs.msg import Float32MultiArray
+from cv_bridge import CvBridge, CvBridgeError
+
 
 class ObjectDetectorNode:
 
     def __init__(self):
-
+	
+	self.bridge = CvBridge()
         self.refresh_count = 0
         self.refresh_count = rospy.get_param('refresh_count', default=self.refresh_count)
         self.desired_distance = 0.6
@@ -20,7 +22,7 @@ class ObjectDetectorNode:
         self.rolling_sum = 0
 
         self.before_e = 0
-        self.is_running = False
+        self.is_running = True #always
         self.is_right = True
         self.stopped = False
         self.blob_found = False
@@ -36,14 +38,13 @@ class ObjectDetectorNode:
         self.img_width = 0
         self.img_height = 0
 
-        self.drive_pub = rospy.Publisher("/vesc/ackermann_cmd_mux/input/navigation", AckermannDriveStamped)
+        self.drive_pub = rospy.Publisher("/vesc/ackermann_cmd_mux/input/navigation", AckermannDriveStamped,queue_size=10)
 
         self.vision = rospy.Subscriber("/scan", LaserScan, self.drive_control)
         self.joystick = rospy.Subscriber("/vesc/joy", Joy, self.handle_buttons)
-        self.blob_detect_sub = rospy.Subscriber("blob_info", blob_detect, self.blob_callback)
+        self.blob_detect_sub = rospy.Subscriber("/blob_info", blob_detect, self.blob_callback)
         self.zed_camera = rospy.Subscriber("/camera/rgb/image_rect_color", Image, self.zed_cam_callback) 	
 
-        rospy.init_node("object_detector_node")
         self.header = std_msgs.msg.Header()
         self.header.stamp = rospy.Time.now()
         self.STOP = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=0.0, speed=0.0))
@@ -70,21 +71,24 @@ class ObjectDetectorNode:
 		#img size
 		img_size = self.img_height * self.img_width
 		#self.blob_size
+		print "blob size;",str(self.blob_size)
+		print "img size:", str(img_size)
 		size_ratio = float(self.blob_size) / float(img_size)
-		if size_ratio < .3 or self.ready_to_wall_detect:
+		print "size ratio:", str(size_ratio)
+		if size_ratio < .3 and not self.ready_to_wall_detect:
 
-		    #COLOR DRIVING		
-		    col_error = self.ddes - self.dhat
+			#COLOR DRIVING		
+			print ("Color Driving")
+			col_error = self.ddes - self.dhat
 
-		    color_steering_angle = self.pid_color_control(col_error)
-		    drive_command_color = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=color_steering_angle, speed=2.0))
-		    self.drive_pub.publish(drive_command_color)
-		    #COLOR DRIVING END
-		else size_ratio >= .3:
-
+			color_steering_angle = self.pid_color_control(col_error)
+		  	drive_command_color = AckermannDriveStamped(self.header, AckermannDrive(steering_angle=color_steering_angle, speed=2.0))
+		    	self.drive_pub.publish(drive_command_color)
+		    	#COLOR DRIVING END
+		elif size_ratio >= float(sys.argv[6]) or self.ready_to_wall_detect:
+			print "Wall Following"
 			#WALL DETECTION START
-
-		    	if self.color == "green":
+			if self.color == "green":
 		            rospy.loginfo("Tracking left wall")
 		            self.is_right = False
 		            self.ready_to_wall_detect = True
@@ -121,14 +125,14 @@ class ObjectDetectorNode:
 		        self.drive_pub.publish(drive_command)
 		        #WALL DETECTION END
 
-    def zed_cam_callback(self, data):
-        img_data = self.bridge.imgmsg_to_cv2(data)
-        self.img_width, self.img_height = cv.Getsize(img_data)
+    def zed_cam_callback(self, img):
+        img_data = self.bridge.imgmsg_to_cv2(img)
+        self.img_width, self.img_height, channels = img_data.shape
 	
     def blob_callback(self, data):
-        self.blob_size = data.size
+	
+        self.blob_size = float(data.size.data)
         first_pts = data.location
-        rospy.loginfo("x: %s y: %s z: %s" % (str(first_pts.x), str(first_pts.y), str(first_pts.z)))
         blob_x = self.img_width * first_pts.x
         blob_y = self.img_height * first_pts.y
 
@@ -141,7 +145,7 @@ class ObjectDetectorNode:
         self.dhat = blob_x
 
     def pid_color_control(self, error):
-		return float(sys.argv[5]) * error
+	return float(sys.argv[5]) * error
 
     def pid_controller(self, error):
         rospy.loginfo(error)
@@ -172,7 +176,6 @@ class ObjectDetectorNode:
             return -1 * ki * self.rolling_sum
 
 if __name__ == "__main__":
-
-    node = ObjectDetectorNode()
-
-    rospy.spin()
+	rospy.init_node("object_detector_node")
+   	node = ObjectDetectorNode()
+    	rospy.spin()
