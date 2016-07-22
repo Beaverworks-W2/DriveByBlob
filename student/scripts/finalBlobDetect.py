@@ -98,8 +98,8 @@ class ZedCamPub:
 				#green rect	
 				x, y, w, h = cv2.boundingRect(officCont)	
 				cv2.rectangle(img, (x,y), (x+w, y+h), (100, 50, 50), 2)
-				#size
-				blobSize = w*h
+				#height
+				blobHeight = h
 				#location
 				height = np.size(img, 0)
 				width = np.size(img, 1)
@@ -107,13 +107,12 @@ class ZedCamPub:
 				location = Point(float(cx)/float(width), float(cy)/float(height), 0)
 					
 				blobD.header = self.header
-				print "size:",str(float(blobSize))
-				blobD.size = Float64(float(blobSize))
-				#blobD.size = float(blobSize) #temp
+				print "height:",str(float(blobHeight))
+				blobD.height = Float64(float(blobHeight))
 				blobD.location = location	
 				print blobD
 				
-				# blob_detect(self.header, blobD.color, blobD.size, blobD.location)
+				# blob_detect(self.header, blobD.color, blobD.height, blobD.location)
 				self.loc_size_pub.publish(blobD)
 				#self.test_pub.publish("ello")
 			
