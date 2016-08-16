@@ -34,7 +34,7 @@ class ZedCamPub:
 	def process_img(self, img):
 		blobD = blob_detect()	
 		
-		hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+		hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 		
 		#GREEN STUFF
 		hue_green_min = 90
@@ -50,8 +50,8 @@ class ZedCamPub:
 
 		contours_green, hierarchy_green = cv2.findContours(maskGreen, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-		hue_red_min1 = 225
-		hue_red_max1 = 250
+		hue_red_min1 = 0
+		hue_red_max1 = 30
 
 		sat_red_min1 = .8
 		sat_red_max1 = 1
